@@ -434,4 +434,89 @@ export const opsiPrivasi = [
   },
 ]
 
+/* ------------------------------------------------------------------ *
+ * Data statistik halaman /statistik
+ * ------------------------------------------------------------------ */
+
+export const statistikRingkasan = [
+  {
+    key: 'total',
+    label: 'Total Pengaduan',
+    nilai: '14.820',
+    icon: 'mark_email_read',
+    iconClass: 'bg-primary-fixed/50 text-primary',
+    nilaiClass: 'text-on-surface',
+    labelClass: 'text-on-surface-variant',
+    deskripsi: 'Dari 12 kecamatan',
+  },
+  {
+    key: 'proses',
+    label: 'Sedang Diproses',
+    nilai: '342',
+    icon: 'pending_actions',
+    iconClass: 'bg-secondary-fixed/50 text-secondary',
+    nilaiClass: 'text-secondary',
+    labelClass: 'text-secondary',
+    deskripsi: '9 OPD aktif',
+  },
+  {
+    key: 'selesai',
+    label: 'Selesai Bulan Ini',
+    nilai: '2.847',
+    icon: 'task_alt',
+    iconClass: 'bg-primary-fixed/50 text-primary',
+    nilaiClass: 'text-primary',
+    labelClass: 'text-on-surface-variant',
+    deskripsi: '96.2% tuntas',
+  },
+  {
+    key: 'sla',
+    label: 'Kepatuhan SLA',
+    nilai: '94.8%',
+    icon: 'campaign',
+    iconClass: 'bg-tertiary-fixed/50 text-tertiary',
+    nilaiClass: 'text-tertiary',
+    labelClass: 'text-on-surface-variant',
+    deskripsi: '24 jam standar',
+  },
+]
+
+export const distribusiStatus = [
+  { status: 'baru', label: 'Baru', jumlah: 84, persen: 12, color: 'bg-error text-on-error' },
+  { status: 'diverifikasi', label: 'Diverifikasi', jumlah: 42, persen: 6, color: 'bg-amber-500 text-white' },
+  { status: 'diproses', label: 'Diproses', jumlah: 342, persen: 48, color: 'bg-secondary text-on-secondary' },
+  { status: 'selesai', label: 'Selesai', jumlah: 228, persen: 32, color: 'bg-primary text-on-primary' },
+  { status: 'ditolak', label: 'Ditolak', jumlah: 8, persen: 1, color: 'bg-outline text-on-surface-variant' },
+]
+
+export const trenMingguan = [
+  { hari: '1-3', masuk: 168, selesai: 112, ditolak: 4 },
+  { hari: '4-6', masuk: 192, selesai: 143, ditolak: 3 },
+  { hari: '7-9', masuk: 142, selesai: 128, ditolak: 5 },
+  { hari: '10-12', masuk: 208, selesai: 156, ditolak: 2 },
+  { hari: '13-15', masuk: 234, selesai: 176, ditolak: 6 },
+  { hari: '16-18', masuk: 187, selesai: 169, ditolak: 1 },
+]
+
+export const distribusiKategori = [
+  { kategori: 'Infrastruktur & Jalan', jumlah: 3120, color: 'bg-primary' },
+  { kategori: 'Kebersihan Lingkungan', jumlah: 1870, color: 'bg-secondary' },
+  { kategori: 'Kependudukan & Dukcapil', jumlah: 1560, color: 'bg-primary-container' },
+  { kategori: 'Pelayanan Air PDAM', jumlah: 1340, color: 'bg-tertiary' },
+  { kategori: 'Kesehatan & Bansos', jumlah: 1280, color: 'bg-amber-500' },
+  { kategori: 'Ketertiban Umum', jumlah: 1120, color: 'bg-outline' },
+  { kategori: 'Lainnya', jumlah: 650, color: 'bg-surface-container' },
+]
+
+export const performaOPD = [
+  { opd: 'Dinas PUPR', total: 234, selesai: 210, tertib: 95.2, color: 'bg-primary text-on-primary' },
+  { opd: 'DLH Kota', total: 187, selesai: 176, tertib: 94.1, color: 'bg-primary-container text-on-primary-container' },
+  { opd: 'Disdukcapil', total: 156, selesai: 148, tertib: 94.8, color: 'bg-secondary text-on-secondary' },
+  { opd: 'Satpol PP', total: 98, selesai: 88, tertib: 89.8, color: 'bg-tertiary text-on-tertiary' },
+  { opd: 'Dinas Kesehatan', total: 142, selesai: 134, tertib: 94.4, color: 'bg-amber-700 text-white' },
+  { opd: 'Dishub Kota', total: 87, selesai: 79, tertib: 90.8, color: 'bg-outline text-on-surface' },
+  { opd: 'Perumda Air', total: 112, selesai: 98, tertib: 87.5, color: 'bg-secondary-container text-on-secondary-container' },
+  { opd: 'Inspektorat', total: 45, selesai: 42, tertib: 93.3, color: 'bg-tertiary-container text-on-tertiary-container' },
+]
+
 
