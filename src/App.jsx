@@ -2,12 +2,14 @@
  * Routing aplikasi LAPOR-DAERAH.
  *  - `/`                     -> Portal Pengaduan Masyarakat (publik)
  *  - `/manajemen-pengaduan`  -> Dashboard petugas/admin
+ *  - `/statistik`            -> Halaman statistik & akuntabilitas
  */
 import { useEffect } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { Footer, Header } from './components/Layout'
 import PortalPublik from './pages/PortalPublik'
 import ManajemenPengaduan from './pages/ManajemenPengaduan'
+import Statistik from './pages/Statistik'
 
 /* Scroll ke atas setiap kali rute berubah */
 function ScrollToTop() {
@@ -36,6 +38,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<PortalPublik />} />
           <Route path="/manajemen-pengaduan" element={<ManajemenPengaduan />} />
+          <Route path="/statistik" element={<Statistik />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

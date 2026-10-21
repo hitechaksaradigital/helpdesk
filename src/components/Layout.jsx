@@ -15,7 +15,7 @@ const navItems = [
   { key: 'lacak-tiket', label: 'Lacak Tiket', href: '/#quick-tracker' },
   { key: 'pengaduan-publik', label: 'Pengaduan Publik', href: '/#pengaduan-publik' },
   { key: 'alur-dan-faq', label: 'Alur & FAQ', href: '/#alur-dan-faq' },
-  { key: 'statistik', label: 'Statistik', href: '/#statistik' },
+  { key: 'statistik', label: 'Statistik', href: '/statistik' },
 ]
 
 export function Header() {
