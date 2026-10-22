@@ -21,7 +21,28 @@ create table if not exists public.pengaduan (
   updated_at         timestamp with time zone default now()
 );
 
--- 2. Sinkronkan updated_at otomatis pada tiap perubahan baris
+-- 2. Auto-generate nomor_tiket (format TKT-YYYY-NNNN) bila belum diisi.
+--    Pola ini menghindari duplikat kunci saat banyak klien menyimpan serentak
+--    sekaligus tetap dapat dijalankan berulang kali tanpa error.
+create sequence if not exists public.seq_nomor_tiket start 1106 increment 1;
+
+create or replace function public._generate_nomor_tiket()
+returns trigger as $$
+begin
+  if coalesce(new.nomor_tiket, '') = '' then
+    new.nomor_tiket := 'TKT-' || extract(year from now())::text || '-' ||
+      lpad(nextval('public.seq_nomor_tiket')::text, 4, '0');
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_pengaduan_nomor_tiket on public.pengaduan;
+create trigger trg_pengaduan_nomor_tiket
+  before insert on public.pengaduan
+  for each row execute function public._generate_nomor_tiket();
+
+-- 3. Sinkronkan updated_at otomatis pada tiap perubahan baris
 create or replace function public._set_updated_at()
 returns trigger as $$
 begin

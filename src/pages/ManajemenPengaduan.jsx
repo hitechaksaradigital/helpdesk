@@ -233,10 +233,7 @@ export default function ManajemenPengaduan() {
   }
 
   const simpanPengaduanManual = async (form) => {
-    const nomorBaru = `TKT-2025-${1105 + data.length}`
-    const createdAt = new Date().toISOString()
     const barisDb = {
-      nomor_tiket: nomorBaru,
       nama_pelapor: form.nama || 'Warga Anonim',
       kategori_layanan: form.kategori,
       isi_laporan: form.deskripsi || '-',
@@ -245,11 +242,11 @@ export default function ManajemenPengaduan() {
       lampiran_bukti: '',
       rating_kepuasan: null,
       status: 'baru',
-      created_at: createdAt,
     }
     try {
-      await tambahPengaduan(barisDb)
-      setData((prev) => [dbKeUi({ ...barisDb, created_at: createdAt }), ...prev])
+      const dibuat = await tambahPengaduan(barisDb)
+      const nomorBaru = dibuat.nomor_tiket
+      setData((prev) => [dbKeUi(dibuat), ...prev])
       setHalaman(1)
       setModalManual(false)
       tampilkanToast(`Pengaduan manual terdaftar dengan nomor tiket ${nomorBaru}.`)

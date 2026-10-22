@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { kategoriLayanan, opsiPrivasi, opdList } from '../../data'
 import { Icon } from '../ui'
+import { tambahPengaduan } from '../../supabaseClient'
 
 const AWAL = {
   kategori: 'Infrastruktur & Jalan',
@@ -20,6 +21,8 @@ export default function FormPengaduan() {
   const [berkas, setBerkas] = useState([])
   const [sukses, setSukses] = useState(false)
   const [nomorTiket, setNomorTiket] = useState('')
+  const [mengirim, setMengirim] = useState(false)
+  const [errorKirim, setErrorKirim] = useState(null)
 
   const set = (key) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -31,19 +34,38 @@ export default function FormPengaduan() {
     setBerkas((prev) => [...prev, ...files.map((f) => f.name)])
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    const tiket = 'TKT-2025-1483'
-    setNomorTiket(tiket)
-    setSukses(true)
-    setForm(AWAL)
-    setBerkas([])
-    window.setTimeout(() => {
-      document.getElementById('form-success-alert')?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-      })
-    }, 60)
+    setMengirim(true)
+    setErrorKirim(null)
+    const barisDb = {
+      nama_pelapor: 'Warga Anonim',
+      kategori_layanan: form.kategori,
+      isi_laporan: `${form.judul}\n\n${form.isi}`,
+      lokasi_kejadian: form.lokasi,
+      instansi_tujuan: form.instansi,
+      lampiran_bukti: '',
+      rating_kepuasan: null,
+      status: 'baru',
+    }
+    try {
+      const dibuat = await tambahPengaduan(barisDb)
+      setNomorTiket(dibuat.nomor_tiket)
+      setSukses(true)
+      setForm(AWAL)
+      setBerkas([])
+      window.setTimeout(() => {
+        document.getElementById('form-success-alert')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        })
+      }, 60)
+    } catch (err) {
+      setErrorKirim((err && err.message) || 'Gagal menyimpan pengaduan ke database.')
+      setSukses(false)
+    } finally {
+      setMengirim(false)
+    }
   }
 
   return (
@@ -272,13 +294,44 @@ export default function FormPengaduan() {
             <div className="pt-2">
               <button
                 className="w-full py-4 px-8 rounded-xl bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all active:scale-[0.99]"
+                disabled={mengirim}
                 type="submit"
               >
-                <Icon name="send" className="text-2xl" />
-                Kirim Pengaduan Resmi ke Pemerintah Daerah
+                {mengirim ? (
+                  <>
+                    <Icon name="hourglass_empty" className="text-2xl animate-spin" />
+                    <span>Mengirim Pengaduan…</span>
+                  </>
+                ) : (
+                  <>
+                    <Icon name="send" className="text-2xl" />
+                    <span>Kirim Pengaduan Resmi ke Pemerintah Daerah</span>
+                  </>
+                )}
               </button>
             </div>
           </form>
+
+          {errorKirim && (
+            <div
+              className="mt-6 p-6 rounded-2xl bg-error-container text-on-error-container space-y-2"
+              id="form-error-alert"
+            >
+              <div className="flex items-center gap-3">
+                <Icon name="error_outline" className="text-3xl" />
+                <div>
+                  <h4 className="font-headline-sm text-headline-sm font-bold">
+                    Gagal Mengirim Pengaduan
+                  </h4>
+                  <p className="font-body-sm text-body-sm">{errorKirim}</p>
+                  <p className="font-caption text-caption">
+                    Pastikan koneksi Supabase sudah benar (cek .env) dan skema
+                    sudah dijalankan di project Anda.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {sukses && (
             <div
