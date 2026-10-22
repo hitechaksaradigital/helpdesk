@@ -11,6 +11,7 @@ export default function TabelPengaduan({
   onDetail,
   onVerifikasi,
   onSalin,
+  onHapus,
 }) {
   return (
     <div className="rounded-2xl bg-surface-container-lowest shadow-sm overflow-hidden">
@@ -141,8 +142,16 @@ export default function TabelPengaduan({
                         title="Detail &amp; Penugasan"
                         type="button"
                       >
-                        <Icon name="edit_note" className="text-[20px]" />
-                      </button>
+                       <Icon name="edit_note" className="text-[20px]" />
+                        </button>
+                        <button
+                          className="p-1.5 rounded-md hover:bg-error-container text-error"
+                          onClick={() => onHapus(row)}
+                          title="Hapus Tiket"
+                          type="button"
+                        >
+                          <Icon name="delete" className="text-[20px]" />
+                        </button>
                     </div>
                   </td>
                 </tr>

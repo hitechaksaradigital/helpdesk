@@ -1,6 +1,12 @@
-import { useMemo, useState } from 'react'
-import { daftarPengaduan as dataAwal, statusMeta } from '../data'
+import { useEffect, useMemo, useState } from 'react'
+import { kategoriLayanan, statusMeta } from '../data'
 import { Icon, Toast } from '../components/ui'
+import {
+  getPengaduan,
+  tambahPengaduan,
+  ubahPengaduan,
+  hapusPengaduan,
+} from '../supabaseClient'
 import FilterBar from '../components/admin/FilterBar'
 import KartuMetrik from '../components/admin/KartuMetrik'
 import MasterData from '../components/admin/MasterData'
@@ -17,19 +23,95 @@ const STATUS_LIST = [
   { value: 'ditolak', label: 'Ditolak', chipAktif: 'bg-surface-container-highest text-on-surface font-semibold' },
 ]
 
+/* ------------------------------------------------------------------ *
+ * Pemetaan: baris database (Supabase) -> bentuk data yang dipakai UI
+ * ------------------------------------------------------------------ */
+const WARNA_KATEGORI = {
+  'Infrastruktur & Jalan': 'text-secondary',
+  'Kebersihan Lingkungan': 'text-primary',
+  'Kependudukan & Dukcapil': 'text-secondary',
+  'Ketertiban Umum': 'text-tertiary',
+  'Pelayanan Air PDAM': 'text-primary',
+  'Kesehatan & Bansos': 'text-tertiary',
+  'Lainnya': 'text-on-surface-variant',
+}
+
+const BULAN = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
+const formatTanggal = (iso) => {
+  if (!iso) return '-'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '-'
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mon = BULAN[d.getMonth()] ?? ''
+  const yy = d.getFullYear()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${dd} ${mon} ${yy} • ${hh}:${mm} WIB`
+}
+
+const dbKeUi = (row) => {
+  const kategori = row.kategori_layanan ?? '-'
+  return {
+    id: row.nomor_tiket,
+    nama: row.nama_pelapor,
+    tanggal: formatTanggal(row.created_at),
+    kategori,
+    kategoriIcon: kategoriLayanan.find((k) => k.value === kategori)?.icon ?? 'category',
+    kategoriColor: WARNA_KATEGORI[kategori] ?? 'text-primary',
+    lokasi: row.lokasi_kejadian ?? '-',
+    deskripsi: row.isi_laporan,
+    lampiran: row.lampiran_bukti
+      ? { icon: 'link', label: 'Lihat Bukti' }
+      : { icon: 'image_not_supported', label: 'Tanpa Berkas' },
+    instansi: row.instansi_tujuan ?? '-',
+    pic: 'Menunggu Penugasan',
+    status: row.status ?? 'baru',
+    rating: row.rating_kepuasan,
+  }
+}
+
 export default function ManajemenPengaduan() {
-  const [data, setData] = useState(dataAwal)
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [errorDb, setErrorDb] = useState(null)
   const [cari, setCari] = useState('')
   const [kategori, setKategori] = useState('')
   const [status, setStatus] = useState('')
   const [instansi, setInstansi] = useState('')
   const [terpilih, setTerpilih] = useState([])
-  const [tiketAktif, setTiketAktif] = useState(dataAwal[0] || null)
+  const [tiketAktif, setTiketAktif] = useState(null)
   const [modalManual, setModalManual] = useState(false)
   const [modalVerifikasi, setModalVerifikasi] = useState(null)
   const [toast, setToast] = useState(null)
   const [perHalaman, setPerHalaman] = useState(5)
   const [halaman, setHalaman] = useState(1)
+
+  useEffect(() => {
+    let aktif = true
+    setLoading(true)
+    setErrorDb(null)
+    getPengaduan()
+      .then((rows) => {
+        if (!aktif) return
+        const mapped = rows.map(dbKeUi)
+        setData(mapped)
+        setTiketAktif(mapped[0] || null)
+      })
+      .catch((err) => {
+        if (!aktif) return
+        setErrorDb(err)
+      })
+      .finally(() => {
+        if (aktif) setLoading(false)
+      })
+    return () => {
+      aktif = false
+    }
+  }, [])
 
   const kategoriList = useMemo(() => [...new Set(data.map((row) => row.kategori))], [data])
   const instansiList = useMemo(() => [...new Set(data.map((row) => row.instansi))], [data])
@@ -79,83 +161,158 @@ export default function ManajemenPengaduan() {
     )
   }
 
-  const simpanPerubahan = ({ tiketId, status: statusBaru, opd, pic }) => {
-    setData((prev) =>
-      prev.map((row) =>
-        row.id === tiketId
-          ? { ...row, status: statusBaru, instansi: opd || row.instansi, pic: pic || row.pic }
-          : row,
-      ),
-    )
-    setTiketAktif((prev) =>
-      prev && prev.id === tiketId
-        ? { ...prev, status: statusBaru, instansi: opd || prev.instansi, pic: pic || prev.pic }
-        : prev,
-    )
-    tampilkanToast(
-      `Status tiket ${tiketId} diperbarui menjadi ${statusMeta[statusBaru].label}.`,
-      statusBaru,
-    )
+  const simpanPerubahan = async ({ tiketId, status: statusBaru, opd, pic }) => {
+    try {
+      await ubahPengaduan(tiketId, { status: statusBaru, instansi_tujuan: opd })
+      setData((prev) =>
+        prev.map((row) =>
+          row.id === tiketId
+            ? { ...row, status: statusBaru, instansi: opd || row.instansi, pic: pic || row.pic }
+            : row,
+        ),
+      )
+      setTiketAktif((prev) =>
+        prev && prev.id === tiketId
+          ? { ...prev, status: statusBaru, instansi: opd || prev.instansi, pic: pic || prev.pic }
+          : prev,
+      )
+      tampilkanToast(
+        `Status tiket ${tiketId} diperbarui menjadi ${statusMeta[statusBaru].label}.`,
+        statusBaru,
+      )
+    } catch (err) {
+      tampilkanToast(`Gagal memperbarui tiket ${tiketId}: ${(err && err.message) || err}`, 'baru', 'error')
+    }
   }
 
-  const bulkAksi = (aksi) => {
+  const bulkAksi = async (aksi) => {
     if (terpilih.length === 0) {
       tampilkanToast('Pilih minimal satu tiket untuk menjalankan aksi massal.', 'baru', 'error')
       return
     }
     if (aksi === 'verifikasi') {
-      setData((prev) =>
-        prev.map((row) =>
-          terpilih.includes(row.id) && row.status === 'baru'
-            ? { ...row, status: 'diverifikasi' }
-            : row,
-        ),
-      )
-      tampilkanToast(`${terpilih.length} tiket berhasil diverifikasi secara massal.`)
+      const target = data.filter((row) => terpilih.includes(row.id) && row.status === 'baru')
+      try {
+        await Promise.all(target.map((row) => ubahPengaduan(row.id, { status: 'diverifikasi' })))
+        setData((prev) =>
+          prev.map((row) =>
+            terpilih.includes(row.id) && row.status === 'baru'
+              ? { ...row, status: 'diverifikasi' }
+              : row,
+          ),
+        )
+        tampilkanToast(`${terpilih.length} tiket berhasil diverifikasi secara massal.`)
+      } catch (err) {
+        tampilkanToast(
+          `Gagal memverifikasi massal: ${(err && err.message) || err}`,
+          'baru',
+          'error',
+        )
+      }
     } else {
-      tampilkanToast(`${terpilih.length} tiket didelegasikan ke dinas tujuan.`, 'diproses', 'forward')
+      const target = data.filter((row) => terpilih.includes(row.id) && row.status !== 'selesai' && row.status !== 'ditolak')
+      try {
+        await Promise.all(target.map((row) => ubahPengaduan(row.id, { status: 'diproses' })))
+        setData((prev) =>
+          prev.map((row) =>
+            terpilih.includes(row.id) && row.status !== 'selesai' && row.status !== 'ditolak'
+              ? { ...row, status: 'diproses' }
+              : row,
+          ),
+        )
+        tampilkanToast(`${terpilih.length} tiket didelegasikan ke dinas tujuan.`, 'diproses', 'forward')
+      } catch (err) {
+        tampilkanToast(
+          `Gagal mendelegasikan: ${(err && err.message) || err}`,
+          'baru',
+          'error',
+        )
+      }
     }
     setTerpilih([])
   }
 
-  const simpanPengaduanManual = (form) => {
+  const simpanPengaduanManual = async (form) => {
     const nomorBaru = `TKT-2025-${1105 + data.length}`
-    const rowBaru = {
-      id: nomorBaru,
-      nama: form.nama || 'Warga Anonim',
-      tanggal: '15 Nov 2025 • 10:00 WIB',
-      kategori: form.kategori,
-      kategoriIcon: 'campaign',
-      kategoriColor: 'text-primary',
-      lokasi: form.lokasi || '-',
-      deskripsi: form.deskripsi || '-',
-      lampiran: { icon: 'attachment', label: 'Bukti Foto (1 File)' },
-      instansi: form.instansi,
-      pic: 'Menunggu Penugasan',
+    const createdAt = new Date().toISOString()
+    const barisDb = {
+      nomor_tiket: nomorBaru,
+      nama_pelapor: form.nama || 'Warga Anonim',
+      kategori_layanan: form.kategori,
+      isi_laporan: form.deskripsi || '-',
+      lokasi_kejadian: form.lokasi || '-',
+      instansi_tujuan: form.instansi,
+      lampiran_bukti: '',
+      rating_kepuasan: null,
       status: 'baru',
-      rating: null,
+      created_at: createdAt,
     }
-    setData((prev) => [rowBaru, ...prev])
-    setModalManual(false)
-    tampilkanToast(`Pengaduan manual terdaftar dengan nomor tiket ${nomorBaru}.`)
+    try {
+      await tambahPengaduan(barisDb)
+      setData((prev) => [dbKeUi({ ...barisDb, created_at: createdAt }), ...prev])
+      setHalaman(1)
+      setModalManual(false)
+      tampilkanToast(`Pengaduan manual terdaftar dengan nomor tiket ${nomorBaru}.`)
+    } catch (err) {
+      tampilkanToast(
+        `Gagal mendaftarkan pengaduan: ${(err && err.message) || err}`,
+        'baru',
+        'error',
+      )
+    }
   }
 
-  const konfirmasiVerifikasi = () => {
+  const konfirmasiVerifikasi = async () => {
     const id = modalVerifikasi?.id
-    setData((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, status: 'diverifikasi' } : row)),
-    )
+    try {
+      await ubahPengaduan(id, { status: 'diverifikasi' })
+      setData((prev) =>
+        prev.map((row) => (row.id === id ? { ...row, status: 'diverifikasi' } : row)),
+      )
+      tampilkanToast(`Verifikasi tiket ${id} berhasil diproses.`)
+    } catch (err) {
+      tampilkanToast(
+        `Gagal memverifikasi tiket ${id}: ${(err && err.message) || err}`,
+        'baru',
+        'error',
+      )
+    }
     setModalVerifikasi(null)
-    tampilkanToast(`Verifikasi tiket ${id} berhasil diproses.`)
   }
 
-  const tolakVerifikasi = () => {
+  const tolakVerifikasi = async () => {
     const id = modalVerifikasi?.id
-    setData((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, status: 'ditolak' } : row)),
-    )
+    try {
+      await ubahPengaduan(id, { status: 'ditolak' })
+      setData((prev) =>
+        prev.map((row) => (row.id === id ? { ...row, status: 'ditolak' } : row)),
+      )
+      tampilkanToast(`Pengaduan ${id} ditandai tidak valid.`, 'ditolak', 'cancel')
+    } catch (err) {
+      tampilkanToast(
+        `Gagal menolak tiket ${id}: ${(err && err.message) || err}`,
+        'baru',
+        'error',
+      )
+    }
     setModalVerifikasi(null)
-    tampilkanToast(`Pengaduan ${id} ditandai tidak valid.`, 'ditolak', 'cancel')
+  }
+
+  const hapusTiket = async (row) => {
+    if (!window.confirm(`Hapus tiket ${row.id}?\nTindakan ini tidak dapat dibatalkan.`)) return
+    try {
+      await hapusPengaduan(row.id)
+      setData((prev) => prev.filter((r) => r.id !== row.id))
+      if (tiketAktif && tiketAktif.id === row.id) setTiketAktif(null)
+      setTerpilih((prev) => prev.filter((x) => x !== row.id))
+      tampilkanToast(`Tiket ${row.id} telah dihapus.`)
+    } catch (err) {
+      tampilkanToast(
+        `Gagal menghapus tiket ${row.id}: ${(err && err.message) || err}`,
+        'baru',
+        'error',
+      )
+    }
   }
 
   return (
@@ -282,17 +439,42 @@ export default function ManajemenPengaduan() {
           </div>
 
           {/* Tabel Kontainer Pengaduan */}
-          <TabelPengaduan
-            data={dataHalaman}
-            onDetail={(row) => setTiketAktif(row)}
-            onSalin={(id) => {
-              navigator.clipboard?.writeText(id)
-              tampilkanToast(`Nomor tiket ${id} disalin ke papan klip.`)
-            }}
-            onVerifikasi={(row) => setModalVerifikasi(row)}
-            terpilih={terpilih}
-            togglePilih={togglePilih}
-          />
+          {loading && (
+            <div className="p-12 text-center rounded-2xl bg-surface-container-lowest shadow-sm">
+              <Icon name="hourglass_empty" className="text-[40px] text-on-surface-variant animate-spin" />
+              <p className="mt-3 font-label-md text-label-md text-on-surface font-semibold">
+                Memuat data pengaduan dari Supabase…
+              </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                Mohon tunggu sejenak.
+              </p>
+            </div>
+          )}
+          {errorDb && !loading && (
+            <div className="p-12 text-center rounded-2xl bg-surface-container-lowest shadow-sm">
+              <Icon name="error_outline" className="text-[40px] text-error" />
+              <p className="mt-3 font-label-md text-label-md text-on-surface font-semibold">
+                Gagal memuat data dari Supabase
+              </p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">
+                {(errorDb && errorDb.message) || 'Terjadi kesalahan koneksi.'}
+              </p>
+            </div>
+          )}
+          {!loading && !errorDb && (
+            <TabelPengaduan
+              data={dataHalaman}
+              onDetail={(row) => setTiketAktif(row)}
+              onSalin={(id) => {
+                navigator.clipboard?.writeText(id)
+                tampilkanToast(`Nomor tiket ${id} disalin ke papan klip.`)
+              }}
+              onVerifikasi={(row) => setModalVerifikasi(row)}
+              onHapus={(row) => hapusTiket(row)}
+              terpilih={terpilih}
+              togglePilih={togglePilih}
+            />
+          )}
 
           {/* Pagination Controls */}
           <div className="p-4 bg-surface-container-low rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-on-surface-variant font-caption text-caption">
