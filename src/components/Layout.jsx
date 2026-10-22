@@ -2,8 +2,9 @@
  * Header + Footer bersama untuk halaman publik dan admin.
  */
 import { useEffect, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { kontakSekretariat, nomorDarurat } from '../data'
+import { useAuth, signOut } from '../auth'
 import { BrandLogo, Icon } from './ui'
 
 /* ------------------------------------------------------------------ *
@@ -18,15 +19,38 @@ const navItems = [
   { key: 'statistik', label: 'Statistik', href: '/statistik' },
 ]
 
+const inisial = (nama = '') =>
+  nama
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || 'U'
+
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+
+  const displayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email ||
+    ''
+
+  const handleLogout = async () => {
+    try {
+      await signOut()
+    } catch {
+      /* sesi akan tetap dibersihkan */
+    }
+    navigate('/', { replace: true })
+  }
 
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname, location.hash])
-
-  const isAdmin = location.pathname.startsWith('/manajemen-pengaduan')
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 bg-surface-container-lowest/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
@@ -54,12 +78,39 @@ export function Header() {
           >
             Cek Status Tiket
           </a>
-          <Link
-            className="inline-flex items-center justify-center bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md px-4 py-2.5 rounded-lg transition-colors"
-            to={isAdmin ? '/' : '/manajemen-pengaduan'}
-          >
-            {isAdmin ? 'Kembali ke Portal' : 'Masuk Petugas / Admin'}
-          </Link>
+
+          {user ? (
+            <>
+              <span className="hidden sm:inline-flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
+                <span className="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-[13px] font-semibold text-primary">
+                  {inisial(user.user_metadata?.full_name || displayName)}
+                </span>
+                <span className="hidden md:inline">Halo,</span>
+                <span
+                  className="font-semibold text-on-surface truncate max-w-32"
+                  title={displayName}
+                >
+                  {displayName}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="btn-ghost px-4 py-2.5"
+              >
+                <Icon name="logout" className="text-[18px]" />
+                <span className="hidden sm:inline">Keluar</span>
+              </button>
+            </>
+          ) : (
+            <Link
+              className="inline-flex items-center justify-center bg-primary hover:bg-primary-container text-on-primary font-label-md text-label-md px-4 py-2.5 rounded-lg transition-colors"
+              to="/login"
+            >
+              <Icon name="login" className="text-[18px]" />
+              <span>Masuk</span>
+            </Link>
+          )}
           <button
             aria-expanded={menuOpen}
             aria-label="Buka menu navigasi"

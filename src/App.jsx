@@ -10,6 +10,9 @@ import { Footer, Header } from './components/Layout'
 import PortalPublik from './pages/PortalPublik'
 import ManajemenPengaduan from './pages/ManajemenPengaduan'
 import Statistik from './pages/Statistik'
+import Login from './Login'
+import Register from './Register'
+import ProtectedRoute from './ProtectedRoute'
 
 /* Scroll ke atas setiap kali rute berubah */
 function ScrollToTop() {
@@ -37,8 +40,17 @@ export default function App() {
       <main className="w-full pt-20 bg-background min-h-screen flex-1">
         <Routes>
           <Route path="/" element={<PortalPublik />} />
-          <Route path="/manajemen-pengaduan" element={<ManajemenPengaduan />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/statistik" element={<Statistik />} />
+          <Route
+            path="/manajemen-pengaduan"
+            element={
+              <ProtectedRoute>
+                <ManajemenPengaduan />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
