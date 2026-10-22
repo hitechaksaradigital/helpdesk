@@ -1,24 +1,68 @@
 /**
- * Ikon Material Symbols berbasis ligatur + komponen kecil yang dipakai bersama.
+ * Ikon berbasis react-icons/md + komponen kecil yang dipakai bersama.
  */
 import { useEffect } from 'react'
+import * as MdIcons from 'react-icons/md'
 
 /* ------------------------------------------------------------------ *
- * Ikon Material Symbols
+ * Ikon react-icons (Material Design)
  * ------------------------------------------------------------------ */
-export function Icon({ name, className = '', filled = false, style, ...rest }) {
+
+const outlineMap = new Map([
+  ['star', 'MdStarBorder'],
+  ['star_border', 'MdStarBorder'],
+  ['star_outline', 'MdStarBorder'],
+  ['star_half', 'MdStarHalf'],
+  ['check_circle', 'MdCheckCircleOutline'],
+  ['check_circle_outline', 'MdCheckCircleOutline'],
+  ['verified', 'MdVerified'],
+  ['error', 'MdErrorOutline'],
+  ['error_outline', 'MdErrorOutline'],
+])
+
+/* Nama yang berbeda di react-icons vs Material Symbols */
+const aliasMap = new Map([
+  ['progress_activity', 'MdSync'],
+  ['search_insights', 'MdInsights'],
+])
+
+function toMdName(name) {
   return (
-    <span
+    'Md' +
+    name
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join('')
+  )
+}
+
+function resolveIcon(iconName) {
+  if (aliasMap.has(iconName)) iconName = aliasMap.get(iconName)
+  if (iconName in MdIcons) return MdIcons[iconName]
+  const mdName = toMdName(iconName)
+  return MdIcons[mdName]
+}
+
+export function Icon({ name, className = '', filled = false, style, ...rest }) {
+  let iconName
+
+  if (filled) {
+    iconName = aliasMap.has(name) ? aliasMap.get(name) : toMdName(name)
+  } else if (outlineMap.has(name)) {
+    iconName = outlineMap.get(name)
+  } else {
+    iconName = aliasMap.has(name) ? aliasMap.get(name) : toMdName(name)
+  }
+
+  const IconComponent = resolveIcon(iconName) || MdIcons.MdHelp
+
+  return (
+    <IconComponent
       aria-hidden="true"
-      className={`material-symbols-outlined ${className}`}
-      style={{
-        ...(filled ? { fontVariationSettings: "'FILL' 1" } : null),
-        ...style,
-      }}
+      className={className}
+      style={style}
       {...rest}
-    >
-      {name}
-    </span>
+    />
   )
 }
 
@@ -60,7 +104,7 @@ export function StarRating({ value = 0, className = 'text-sm' }) {
       {Array.from({ length: 5 }).map((_, i) => (
         <Icon
           key={i}
-          name={i < Math.round(value) ? 'star' : 'star_outline'}
+          name={i < Math.round(value) ? 'star' : 'star_border'}
           className={className}
           filled={i < Math.round(value)}
         />

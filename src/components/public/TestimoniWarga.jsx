@@ -22,7 +22,7 @@ export default function TestimoniWarga() {
               <Icon name="star" filled />
               <Icon name="star" filled />
               <Icon name="star" filled />
-              <Icon name="star_half" filled />
+              <Icon name="star_half" />
             </div>
             <p className="font-caption text-caption text-on-surface-variant">
               Dihitung dari 8.420 verifikasi formulir kepuasan warga pasca-tindak lanjut lapangan.

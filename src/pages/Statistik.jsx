@@ -168,12 +168,12 @@ export default function Statistik() {
             <div className="flex items-center justify-center gap-2">
               <div className="flex items-center gap-0.5 text-amber-500">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <Icon
-                    key={i}
-                    name={i < 4 ? 'star' : 'star_half'}
-                    className="text-[20px]"
-                    filled={i === 4}
-                  />
+                    <Icon
+                     key={i}
+                     name={i < 4 ? 'star' : 'star_half'}
+                     className="text-[20px]"
+                     filled={i < 4}
+                   />
                 ))}
               </div>
               <span className="font-headline-md text-headline-md font-bold text-on-surface">4.8</span>
